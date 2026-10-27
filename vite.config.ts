@@ -40,8 +40,13 @@ function pythonMathPlugin() {
   };
 }
 
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
 export default defineConfig(() => {
   return {
+    envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     plugins: [react(), tailwindcss(), pythonMathPlugin()],
     resolve: {
       alias: {
