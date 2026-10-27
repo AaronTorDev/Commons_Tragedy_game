@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "Bote": {
+      "title": "Bote",
+      "description": "Sesión del bote de confites que representa el recurso de uso común.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID o código del bote" },
+        "name": { "type": "string", "maxLength": 100, "description": "Nombre de la sesión o clase" },
+        "code": { "type": "string", "maxLength": 16, "description": "Código alfanumérico para unirse" },
+        "initialCapacity": { "type": "number", "description": "Capacidad inicial de confites" },
+        "currentCandies": { "type": "number", "description": "Cantidad actual restante en el bote" },
+        "status": { "type": "string", "enum": ["waiting", "active", "ended"], "description": "Estado del juego" },
+        "currentTurnTicket": { "type": "number", "description": "Número de ticket que tiene el turno activo" },
+        "totalPlayers": { "type": "number", "description": "Total de jugadores registrados" },
+        "finalBonus": { "type": "number", "description": "Confites de bono por remanente final" },
+        "adminPin": { "type": "string", "maxLength": 32, "description": "PIN del administrador para gestionar el bote" },
+        "createdAt": { "type": "string", "description": "Fecha y hora de creación" },
+        "endedAt": { "type": "string", "description": "Fecha y hora de finalización" }
+      },
+      "required": ["name", "code", "initialCapacity", "currentCandies", "status", "currentTurnTicket", "totalPlayers"]
+    },
+    "Player": {
+      "title": "Player",
+      "description": "Estudiante participante en el experimento con su ticket asignado.",
+      "type": "object",
+      "properties": {
+        "ticketNumber": { "type": "number", "description": "Número correlativo de ticket" },
+        "name": { "type": "string", "maxLength": 80, "description": "Nombre del estudiante" },
+        "hasPlayed": { "type": "boolean", "description": "Indica si ya tomó su decisión" },
+        "chosenX": { "type": "number", "description": "Cantidad deseada x" },
+        "receivedLnX": { "type": "number", "description": "Cantidad real asignada round(ln(x))" },
+        "initialClaimed": { "type": "boolean", "description": "Si ya retiró físicamente sus confites iniciales" },
+        "initialClaimedAt": { "type": "string", "description": "Marca temporal del reclamo inicial" },
+        "bonusClaimed": { "type": "boolean", "description": "Si ya retiró físicamente su bono final" },
+        "bonusClaimedAt": { "type": "string", "description": "Marca temporal del reclamo del bono" },
+        "joinedAt": { "type": "string", "description": "Momento en que entró al bote" },
+        "playedAt": { "type": "string", "description": "Momento en que ejecutó su turno" }
+      },
+      "required": ["ticketNumber", "name", "hasPlayed", "initialClaimed", "bonusClaimed"]
+    },
+    "LedgerEntry": {
+      "title": "LedgerEntry",
+      "description": "Registro público de la jugada de cada participante.",
+      "type": "object",
+      "properties": {
+        "ticketNumber": { "type": "number", "description": "Número de ticket" },
+        "playerName": { "type": "string", "maxLength": 80, "description": "Nombre del jugador" },
+        "chosenX": { "type": "number", "description": "Cantidad solicitada x" },
+        "receivedLnX": { "type": "number", "description": "Confites obtenidos round(ln(x))" },
+        "remainingCandies": { "type": "number", "description": "Confites que quedaron en el bote" },
+        "timestamp": { "type": "string", "description": "Marca temporal de la jugada" }
+      },
+      "required": ["ticketNumber", "playerName", "chosenX", "receivedLnX", "remainingCandies"]
+    }
+  },
+  "firestore": {
+    "/botes/{boteId}": {
+      "schema": "Bote",
+      "description": "Documento principal del bote de confites."
+    },
+    "/botes/{boteId}/players/{playerId}": {
+      "schema": "Player",
+      "description": "Colección de jugadores y tickets registrados en el bote."
+    },
+    "/botes/{boteId}/ledger/{entryId}": {
+      "schema": "LedgerEntry",
+      "description": "Pizarra pública en tiempo real de extracciones."
+    }
+  }
+}

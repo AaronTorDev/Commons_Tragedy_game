@@ -1,0 +1,6 @@
+{
+  "name": "Tragedia de los Comunes - Teoría de Juegos",
+  "description": "Simulación interactiva de la Tragedia de los Comunes para el curso de Teoría de Juegos y Economía Experimental.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
