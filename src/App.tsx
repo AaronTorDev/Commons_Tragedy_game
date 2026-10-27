@@ -10,6 +10,8 @@ import {
   doc,
   setDoc,
   getDocs,
+  deleteDoc,
+  writeBatch,
   query,
   where,
   onSnapshot,
@@ -82,7 +84,8 @@ export default function App() {
         });
         setAllBotes(list);
 
-        if (list.length === 0) {
+        if (list.length === 0 && !localStorage.getItem('tdc_has_seeded')) {
+          localStorage.setItem('tdc_has_seeded', 'true');
           // Auto-inicializar bote por defecto
           const defaultBoteId = 'bote_comun1';
           const defaultBote: Partial<Bote> = {
@@ -348,6 +351,42 @@ export default function App() {
     }
   };
 
+  // Admin: Delete Bote
+  const handleDeleteBote = async (boteIdToDelete: string) => {
+    try {
+      // 1. Delete players subcollection
+      const playersSnap = await getDocs(collection(db, 'botes', boteIdToDelete, 'players'));
+      const batch = writeBatch(db);
+      playersSnap.forEach((d) => batch.delete(d.ref));
+
+      // 2. Delete ledger subcollection
+      const ledgerSnap = await getDocs(collection(db, 'botes', boteIdToDelete, 'ledger'));
+      ledgerSnap.forEach((d) => batch.delete(d.ref));
+
+      // 3. Delete root bote doc
+      batch.delete(doc(db, 'botes', boteIdToDelete));
+
+      await batch.commit();
+
+      // Switch active bote if current was deleted
+      if (currentBoteId === boteIdToDelete) {
+        const remaining = allBotes.filter((b) => b.id !== boteIdToDelete);
+        if (remaining.length > 0) {
+          setCurrentBoteId(remaining[0].id);
+          localStorage.setItem('tdc_current_bote_id', remaining[0].id);
+        } else {
+          setCurrentBoteId(null);
+          localStorage.removeItem('tdc_current_bote_id');
+        }
+        setMyPlayer(null);
+        setMyPlayerId(null);
+        localStorage.removeItem('tdc_my_player_id');
+      }
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `botes/${boteIdToDelete}`);
+    }
+  };
+
   // Admin: Next Turn
   const handleNextTurn = async () => {
     if (!currentBoteId || !bote) return;
@@ -472,6 +511,7 @@ export default function App() {
               localStorage.setItem('tdc_current_bote_id', id);
             }}
             onCreateBote={handleCreateBote}
+            onDeleteBote={handleDeleteBote}
             onNextTurn={handleNextTurn}
             onPrevTurn={handlePrevTurn}
             onToggleStatus={handleToggleStatus}

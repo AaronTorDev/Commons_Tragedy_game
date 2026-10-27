@@ -20,7 +20,8 @@ import {
   Share2,
   Search,
   Box,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -29,6 +30,7 @@ interface AdminPanelProps {
   allBotes?: Bote[];
   onSelectBote: (boteId: string) => void;
   onCreateBote: (name: string, code: string, initialCapacity: number, adminPin: string) => Promise<void>;
+  onDeleteBote: (boteId: string) => Promise<void>;
   onNextTurn: () => Promise<void>;
   onPrevTurn: () => Promise<void>;
   onToggleStatus: (newStatus: 'waiting' | 'active' | 'ended') => Promise<void>;
@@ -43,6 +45,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   allBotes = [],
   onSelectBote,
   onCreateBote,
+  onDeleteBote,
   onNextTurn,
   onPrevTurn,
   onToggleStatus,
@@ -54,6 +57,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [showQrModal, setShowQrModal] = useState(false);
   const [searchClaim, setSearchClaim] = useState('');
   const [filterPendingOnly, setFilterPendingOnly] = useState(false);
+  const [boteToDelete, setBoteToDelete] = useState<Bote | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Create form state
   const [newName, setNewName] = useState('Bote de Confites - Teoría de Juegos');
@@ -237,16 +242,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       )}
                     </div>
 
-                    {bote.status !== 'ended' && (
+                    <div className="flex items-center gap-2">
+                      {bote.status !== 'ended' && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowFinalizeConfirm(true)}
+                          className="text-xs h-8"
+                        >
+                          Finalizar Juego & Dividendo
+                        </Button>
+                      )}
+
                       <Button
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => setShowFinalizeConfirm(true)}
-                        className="text-xs h-8"
+                        onClick={() => setBoteToDelete(bote)}
+                        className="text-xs h-8 text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
                       >
-                        Finalizar Juego & Dividendo
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Borrar Bote</span>
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -279,27 +296,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </CardContent>
                 </Card>
 
-                {allBotes.length > 1 && (
+                {allBotes.length > 0 && (
                   <Card className="border-border shadow-none">
                     <CardHeader className="p-3.5 border-b border-border">
                       <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Tus Botes Guardados
+                        Tus Botes Guardados ({allBotes.length})
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-2 space-y-1 max-h-36 overflow-y-auto">
+                    <CardContent className="p-2 space-y-1 max-h-48 overflow-y-auto">
                       {allBotes.map((b) => (
-                        <button
-                          key={b.id}
-                          onClick={() => onSelectBote(b.id)}
-                          className={`w-full text-left px-2.5 py-1.5 text-xs rounded-md flex items-center justify-between transition-colors ${
-                            b.id === bote.id
-                              ? 'bg-muted font-medium text-foreground'
-                              : 'hover:bg-muted/50 text-muted-foreground'
-                          }`}
-                        >
-                          <span className="truncate">{b.name}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground shrink-0 ml-2">{b.code}</span>
-                        </button>
+                        <div key={b.id} className="flex items-center gap-1 group">
+                          <button
+                            onClick={() => onSelectBote(b.id)}
+                            className={`flex-1 text-left px-2.5 py-1.5 text-xs rounded-md flex items-center justify-between transition-colors ${
+                              b.id === bote.id
+                                ? 'bg-muted font-medium text-foreground'
+                                : 'hover:bg-muted/50 text-muted-foreground'
+                            }`}
+                          >
+                            <span className="truncate">{b.name}</span>
+                            <span className="font-mono text-[10px] text-muted-foreground shrink-0 ml-2">{b.code}</span>
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setBoteToDelete(b)}
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                            title="Borrar este bote de la base de datos"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       ))}
                     </CardContent>
                   </Card>
@@ -583,6 +610,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               className="text-xs"
             >
               Confirmar y Finalizar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DELETE BOTE CONFIRMATION DIALOG */}
+      <Dialog open={!!boteToDelete} onOpenChange={(open) => !open && setBoteToDelete(null)}>
+        <DialogContent className="max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold text-destructive flex items-center gap-2">
+              <Trash2 className="w-4 h-4" />
+              <span>¿Borrar bote de la base de datos?</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed pt-1">
+              Estás a punto de borrar permanentemente el bote{' '}
+              <strong className="text-foreground">{boteToDelete?.name} ({boteToDelete?.code})</strong>.
+              Esta acción eliminará todos los confites, tickets y registros de jugadas de la base de datos en tiempo real.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2 pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isDeleting}
+              onClick={() => setBoteToDelete(null)}
+              className="text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isDeleting}
+              onClick={async () => {
+                if (!boteToDelete) return;
+                try {
+                  setIsDeleting(true);
+                  await onDeleteBote(boteToDelete.id);
+                  setBoteToDelete(null);
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              className="text-xs gap-1.5"
+            >
+              {isDeleting ? 'Borrando...' : 'Sí, borrar definitivamente'}
             </Button>
           </div>
         </DialogContent>

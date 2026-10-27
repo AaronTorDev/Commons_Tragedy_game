@@ -16,7 +16,7 @@ service cloud.firestore {
       allow update: if request.resource.data.name is string
                     && request.resource.data.currentCandies is number
                     && request.resource.data.status in ['waiting', 'active', 'ended'];
-      allow delete: if false;
+      allow delete: if true;
 
       match /players/{playerId} {
         allow read: if true;
@@ -24,7 +24,7 @@ service cloud.firestore {
                       && request.resource.data.name.size() <= 80
                       && request.resource.data.ticketNumber is number;
         allow update: if request.resource.data.ticketNumber is number;
-        allow delete: if false;
+        allow delete: if true;
       }
 
       match /ledger/{entryId} {
@@ -32,7 +32,7 @@ service cloud.firestore {
         allow create: if request.resource.data.ticketNumber is number
                       && request.resource.data.playerName is string;
         allow update: if false;
-        allow delete: if false;
+        allow delete: if true;
       }
     }
   }
