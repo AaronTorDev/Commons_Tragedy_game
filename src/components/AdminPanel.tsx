@@ -64,7 +64,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newName, setNewName] = useState('Bote de Confites - Teoría de Juegos');
   const [newCode, setNewCode] = useState(() => 'BOTE' + Math.floor(100 + Math.random() * 900));
   const [newCapacity, setNewCapacity] = useState(100);
-  const [newPin, setNewPin] = useState('1234');
+  const [newPin, setNewPin] = useState('333888');
   const [isCreating, setIsCreating] = useState(false);
 
   // Finalize confirmation state

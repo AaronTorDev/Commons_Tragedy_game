@@ -97,7 +97,7 @@ export default function App() {
             status: 'active',
             currentTurnTicket: 1,
             totalPlayers: 0,
-            adminPin: '1234',
+            adminPin: '333888',
             createdAt: new Date().toISOString(),
             endedAt: null,
           };
@@ -337,7 +337,7 @@ export default function App() {
       status: 'waiting',
       currentTurnTicket: 1,
       totalPlayers: 0,
-      adminPin: adminPin || '1234',
+      adminPin: adminPin || '333888',
       createdAt: new Date().toISOString(),
       endedAt: null,
     };
@@ -466,8 +466,8 @@ export default function App() {
 
   // Admin Auth verification
   const handleAdminAuth = (pin: string) => {
-    const validPin = bote?.adminPin || '1234';
-    if (pin === validPin || pin === '1234') {
+    const validPin = bote?.adminPin || '333888';
+    if (pin === validPin || pin === '333888') {
       setIsAdmin(true);
       localStorage.setItem('tdc_is_admin', 'true');
       return true;
@@ -663,8 +663,16 @@ export default function App() {
           <strong>Tragedia de los Comunes</strong>
         </p>
 
-        <p>
-          <i class="fa-brands fa-github"></i> <a href="https://github.com/AaronTorDev" >github.com/AaronTorDev</a>
+        <p className="flex items-center justify-center gap-1.5 mt-1">
+          <i className="fa-brands fa-github"></i>
+          <a
+            href="https://github.com/AaronTorDev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline hover:text-foreground transition-colors"
+          >
+            github.com/AaronTorDev
+          </a>
         </p>
       </footer>
     </div>

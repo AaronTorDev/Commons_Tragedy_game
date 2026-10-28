@@ -46,7 +46,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
         {error && (
           <div className="p-2.5 bg-destructive/10 border border-destructive/20 rounded-md flex items-center gap-2 text-xs text-destructive">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span>PIN incorrecto (por defecto 1234).</span>
+            <span>PIN incorrecto.</span>
           </div>
         )}
 
@@ -57,12 +57,13 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             </label>
             <Input
               type="password"
-              placeholder="PIN (ej. 1234)"
+              placeholder="••••••"
+              maxLength={6}
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               autoFocus
               required
-              className="text-xs h-9"
+              className="text-xs h-9 tracking-widest font-mono"
             />
           </div>
 
