@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Tragedia de los Comunes
             </span>
             <span className="text-[11px] text-muted-foreground font-normal mt-0.5">
-              Teoría de Juegos · Economía Experimental
+              Teoría de Juegos
             </span>
           </div>
         </button>

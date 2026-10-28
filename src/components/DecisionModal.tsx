@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { MathView, MathText } from './MathView';
 import { Check, ArrowRight } from 'lucide-react';
 
 interface DecisionModalProps {
@@ -91,8 +92,9 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
           {/* Slider and Input */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label htmlFor="extract-slider" className="text-xs font-medium text-foreground">
-                Cantidad que deseas pedir (x):
+              <label htmlFor="extract-slider" className="text-xs font-medium text-foreground flex items-center gap-1">
+                <span>Cantidad que deseas pedir</span>
+                <MathView math="(x):" />
               </label>
               <div className="flex items-center gap-1.5">
                 <Input
@@ -169,11 +171,19 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
 
           <Separator />
 
-          {/* Payoff Calculation Box */}
+          {/* Payoff Calculation Box with KaTeX */}
           <div className="bg-muted/50 border border-border rounded-lg p-3.5 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-foreground">Función de Utilidad:</span>
-              <span className="font-mono text-muted-foreground text-[11px]">round(ln(x))</span>
+              <MathView math="f(x) \ln(x)" className="text-xs font-semibold" />
+            </div>
+
+            {/* Live Evaluated LaTeX equation */}
+            <div className="bg-background py-1 px-2.5 rounded border border-border text-center">
+              <MathView
+                math={`f(${chosenX}) = \ln(${chosenX}) = ${receivedLnX}\\text{ confites}`}
+                block={true}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -182,9 +192,9 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
                 <div className="text-xl font-bold font-mono text-foreground mt-0.5">
                   {receivedLnX} <span className="text-xs font-normal text-muted-foreground">confites</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-mono block mt-0.5">
-                  ln({chosenX}) = {rawLnX.toFixed(3)}
-                </span>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  <MathView math={`\\ln(${chosenX}) = ${rawLnX.toFixed(3)}`} />
+                </div>
               </div>
 
               <div className="bg-background p-2.5 rounded-md border border-border">
@@ -192,9 +202,9 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
                 <div className="text-xl font-bold font-mono text-foreground mt-0.5">
                   {remainingAfter} <span className="text-xs font-normal text-muted-foreground">(-{receivedLnX})</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground block mt-0.5">
-                  Bono proyectado: +{projectedBonusAfter} c/u
-                </span>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  <MathView math={`\\text{Bono: } +${projectedBonusAfter}`} />
+                </div>
               </div>
             </div>
 
@@ -209,9 +219,9 @@ export const DecisionModal: React.FC<DecisionModalProps> = ({
             </div>
           </div>
 
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            <strong>Dilema:</strong> Pedir {chosenX} confites te otorga {receivedLnX} ahora, pero disminuye el dividendo colectivo restante a {remainingAfter}.
-          </p>
+          <div className="text-[11px] text-muted-foreground leading-relaxed">
+            <MathText text={`Dilema: Pedir $x = ${chosenX}$ confites te otorga $${receivedLnX}$ en mano, pero reduce el dividendo colectivo para todos a $${remainingAfter}$ confites en el bote.`} />
+          </div>
 
           <div className="pt-2 flex gap-2">
             <Button

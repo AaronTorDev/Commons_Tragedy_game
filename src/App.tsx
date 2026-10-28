@@ -657,9 +657,14 @@ export default function App() {
       />
 
       {/* Footer */}
+
       <footer className="mt-auto border-t border-border py-4 text-center text-xs text-muted-foreground bg-background">
         <p>
-          Simulación de la <strong>Tragedia de los Comunes</strong> · Teoría de Juegos y Economía Experimental
+          <strong>Tragedia de los Comunes</strong>
+        </p>
+
+        <p>
+          <i class="fa-brands fa-github"></i> <a href="https://github.com/AaronTorDev" >github.com/AaronTorDev</a>
         </p>
       </footer>
     </div>

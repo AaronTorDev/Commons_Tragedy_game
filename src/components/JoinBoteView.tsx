@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MathText } from './MathView';
 import { Box, ArrowRight, AlertCircle } from 'lucide-react';
 
 interface JoinBoteViewProps {
@@ -36,7 +37,7 @@ export const JoinBoteView: React.FC<JoinBoteViewProps> = ({
           La Tragedia de los Comunes
         </h1>
         <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-          Simulación interactiva de teoría de juegos y dilemas de recursos de uso común.
+          ¿Será el grupo capaz de optimizar el juego?.
         </p>
       </div>
 
@@ -111,11 +112,11 @@ export const JoinBoteView: React.FC<JoinBoteViewProps> = ({
           <div className="pt-3 border-t border-border space-y-1.5 text-xs text-muted-foreground">
             <div>
               <span className="font-medium text-foreground">Extracción: </span>
-              Si solicitas x confites, recibes round(ln(x)) confites físicos.
+              <MathText text="Si solicitas $x$ confites, recibes $ln(x)$ confites físicos. (Redondeado al entero más cercano)" />
             </div>
             <div>
               <span className="font-medium text-foreground">Dividendo final: </span>
-              El remanente en el bote se reparte entre todos: round(ln(remanente)).
+              <MathText text="Al final del juego, cada jugador obtiene un extra de confites, dependiendo de lo que haya quedado en el bote, dado por  $\ln(bote)$ (Redondeado al entero más cercano)"/>
             </div>
           </div>
         </CardContent>

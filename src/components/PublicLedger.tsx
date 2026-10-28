@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { MathView, MathText } from './MathView';
 import { History, Search } from 'lucide-react';
 
 interface PublicLedgerProps {
@@ -36,7 +37,7 @@ export const PublicLedger: React.FC<PublicLedgerProps> = ({ entries, currentCand
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Registro auditable de extracciones y confites asignados.
+              <MathText text="Registro auditable de extracciones $x$ y confites asignados con $f(x) = \ln(x))$. (Redondeado)" />
             </p>
           </div>
 
@@ -84,13 +85,17 @@ export const PublicLedger: React.FC<PublicLedgerProps> = ({ entries, currentCand
               <TableRow className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 <TableHead className="w-16">Ticket</TableHead>
                 <TableHead>Estudiante</TableHead>
-                <TableHead className="text-right">Pedía (x)</TableHead>
-                <TableHead className="text-right">Recibió ln(x)</TableHead>
+                <TableHead className="text-right">
+                  Pedía <MathView math="x" className="lowercase" />
+                </TableHead>
+                <TableHead className="text-right">
+                  Recibió <MathView math="\ln(x)" className="normal-case" />
+                </TableHead>
                 <TableHead className="text-right">Quedó en Bote</TableHead>
                 <TableHead className="text-right hidden sm:table-cell">Hora</TableHead>
               </TableRow>
             </TableHeader>
-            <tbody className="divide-y divide-border">
+            <TableBody>
               {filteredEntries.map((entry) => (
                 <TableRow key={entry.id} className="text-xs">
                   <TableCell className="font-mono font-medium text-foreground">
@@ -113,7 +118,7 @@ export const PublicLedger: React.FC<PublicLedgerProps> = ({ entries, currentCand
                   </TableCell>
                 </TableRow>
               ))}
-            </tbody>
+            </TableBody>
           </Table>
         )}
       </CardContent>

@@ -1,201 +1,105 @@
-# Plan de Implementación: La Tragedia de los Comunes (UCR Economía)
+# Plan de Implementación: Renderizado Matemático LaTeX con KaTeX
 
-Aplicación web móvil interactiva en tiempo real para simular la "Tragedia de los Comunes" en el curso de Teoría de Juegos de la Universidad de Costa Rica (UCR), acompañando el disfraz con la caja física de confites. Permite al administrador crear botes de confites con código y QR, asignar tickets a los estudiantes según orden de llegada, gestionar turnos secuenciales con cálculo logarítmico $\text{round}(\ln(x))$, registrar reclamos físicos y repartir el dividendo final del remanente.
+Integración de **KaTeX** para el formateo y renderizado de fórmulas matemáticas LaTeX ($ y $$) en toda la aplicación web de la Tragedia de los Comunes, garantizando tipografía matemática limpia, soporte para expresiones en línea y en bloque, y rendimiento sin parpadeos ni demoras en dispositivos móviles.
 
 ---
 
 ## Decisiones Críticas y Resumen de Preferencias
 
 > [!IMPORTANT]
-> Decisiones confirmadas por el usuario durante la fase de clarificación:
-> - **Sincronización en tiempo real**: Firebase Firestore mediante listeners reactivos (`onSnapshot`), asegurando que todos los estudiantes vean las actualizaciones al instante desde sus teléfonos celulares sin recargar.
-> - **Mecánica de turnos**: Turno secuencial estricto por número de ticket (#1, #2, #3...), donde solo el jugador activo puede someter su decisión de extracción, con control de pase o avance para el administrador.
-> - **Estilo visual**: Minimalista académico inspirado en la Universidad de Costa Rica (azules sobrios institucionales, toques dorados y detalles sutiles de confites), altamente responsivo y ergonómico para uso móvil táctil.
-> - **Cálculo matemático**: Implementación transparente de la función de pago $f(x) = \text{round}(\ln(x))$ con visualización pedagógica para contrastar lo que el jugador *deseaba extraer* ($x$) frente a lo que *realmente recibe* ($\ln(x)$) y el impacto sobre el recurso común.
+> Decisiones confirmadas por el usuario:
+> - **Librería seleccionada**: **KaTeX** (`katex`) debido a su tamaño ultraligero (< 100 KB), velocidad síncrona de renderizado y óptima compatibilidad con navegadores móviles.
+> - **Alcance de aplicación**: En **toda la interfaz**, incluyendo el modal de reglas y teoría económica, el ticket del estudiante, la calculadora interactiva del slider y los encabezados y resúmenes de la tabla pública de extracciones.
+> - **Manejo de errores resiliente**: `throwOnError: false` en la configuración de KaTeX para asegurar que si una expresión tiene algún detalle de sintaxis, se muestre de forma segura sin romper la aplicación.
 
 ---
 
-## 1. Visión General y Concepto Pedagógico
+## 1. Visión General y Beneficios
 
-### Propósito Económico
-Demostrar experimentalmente la sobreexplotación de un recurso de uso común (Common-Pool Resource o CPR) no excluible pero rival.
-- Cada estudiante que tiene el turno se enfrenta al dilema de extraer $x \in [1, \text{Bote\_Actual}]$.
-- La función de recompensa asigna $y = \text{round}(\ln(x))$, modelando la utilidad marginal decreciente y amortiguando el agotamiento inmediato por un solo agente egoísta.
-- Al finalizar el juego, los recursos restantes en el bote se reparten como beneficio colectivo a todos los participantes: $\text{Bono\_Final} = \text{round}(\ln(\text{Bote\_Restante}))$.
-- Se crea una tensión de teoría de juegos: ¿conviene extraer mucho al inicio para beneficio propio o cooperar para preservar un bote final alto compartido?
-
-### Audiencia Objetivo
-1. **Estudiante / Disfraz (Administrador)**: Porta la caja blanca de confites con el código y QR impresos. Controla el juego desde su celular o laptop: crea el bote, monitorea la cola, avanza turnos, marca reclamos de confites (tanto iniciales como finales) y declara el fin del juego.
-2. **Compañeros de clase (Jugadores)**: Escanean el QR con su teléfono, ingresan su nombre, reciben un ticket con número único, observan la pizarra pública en vivo y deciden su extracción cuando llega su turno.
+### Propósito
+Actualmente, las expresiones matemáticas en las reglas y las descripciones se muestran con sintaxis cruda (`$x$`, `\text{round}(\ln(x))`, `$$...$$`). Con KaTeX:
+- Se presentarán con tipografía matemática tipográfica clásica (fuente serif matemática nítida).
+- Las funciones económicas como $f(x) = \text{round}(\ln(x))$ y $\text{Bono\_Final} = \text{round}(\ln(\text{Bote\_Restante}))$ serán legibles y profesionales para el profesor y los compañeros del curso de Teoría de Juegos.
+- Se mantiene el estilo visual limpio y sobrio de Shadcn UI (sin colores "glow" ni elementos recargados).
 
 ---
 
-## 2. Experiencia de Usuario y Diseño Visual
-
-### Flujos de Usuario Principales
+## 2. Arquitectura de Componentes de Renderizado
 
 ```
-[ PANTALLA PRINCIPAL ]
-        │
-        ├──► [ MODO JUGADOR ] ──► Ingresar Código + Nombre ──► Ticket Digital (#N)
-        │                                                              │
-        │                                  ┌───────────────────────────┴───────────────────────────┐
-        │                                  ▼                                                       ▼
-        │                       [ En Espera de Turno ]                                     [ Turno Activo (#N) ]
-        │                       · Bote en vivo                                             · Slider/Input 1 a Bote
-        │                       · Ticket actual decidiendo                                 · Previsualización: ln(x)
-        │                       · Historial público en vivo                                · Confirmar extracción
-        │                                                                                          │
-        │                                  ┌───────────────────────────────────────────────────────┘
-        │                                  ▼
-        │                       [ Ticket de Reclamo ]
-        │                       · Confites a retirar: ln(x) (Pendiente / Reclamado)
-        │                       · Proyección dinámica de bono final: ln(Bote Actual)
-        │                       · Estado final post-juego (Bono Pendiente / Reclamado)
-        │
-        └──► [ MODO ADMINISTRADOR ] ──► Login/PIN de Administrador
-                                                │
-                                                ├── Crear Bote (ej. 100 confites, Código alfanumérico)
-                                                ├── Ver código grande + Código QR para pegar en la caja
-                                                ├── Monitor en Vivo: Turno actual, jugadores, bote restante
-                                                ├── Control de Turno: Siguiente ticket / Pausar
-                                                ├── Despacho de Confites: Marcar ticket #N como "Entregado"
-                                                └── Finalizar Juego: Calcular bono final y gestionar reclamo final
+┌────────────────────────────────────────────────────────┐
+│                   KATEX CORE ENGINE                    │
+│             katex.renderToString(math, ...)            │
+└───────────────────────────┬────────────────────────────┘
+                            │
+            ┌───────────────┴───────────────┐
+            ▼                               ▼
+┌────────────────────────┐      ┌────────────────────────┐
+│   <MathView math="" /> │      │   <MathText text="" /> │
+│  (Fórmula directa      │      │  (Parsea texto mixto   │
+│   inline o bloque)     │      │   con $...$ y $$...$$) │
+└───────────┬────────────┘      └───────────┬────────────┘
+            │                               │
+            └───────────────┬───────────────┘
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│               COMPONENTES DE LA APLICACIÓN             │
+│                                                        │
+│  · GameTheoryGuideModal: Definición formal del juego   │
+│  · DecisionModal: Ecuación viva f(x) en el slider      │
+│  · TicketCard: Recompensas en el ticket del estudiante │
+│  · PublicLedger: Columnas y resúmenes auditables       │
+│  · JoinBoteView: Reglas sintéticas en la bienvenida    │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Identidad Visual y Tema (UCR Minimalista Académico)
-- **Paleta de Colores**:
-  - *Lienzo Base*: Fondo claro limpio `#F8FAFC` (Slate 50) con superficies blancas puras `#FFFFFF`.
-  - *Azul Institucional UCR*: `#0B4F6C` y `#1E3A8A` para encabezados, barras de navegación y acentos principales.
-  - *Acentos Dulces & Estado*: Ámbar dorado `#D97706` (reserva de confites), Rojo rubí suave `#E11D48` (agotamiento/alerta) y Esmeralda `#059669` (reclamos completados).
-- **Tipografía**:
-  - Títulos e Identidad: `Plus Jakarta Sans` en peso semibold y bold con espaciado limpio.
-  - Métricas Numéricas: `font-mono tabular-nums` para que los contadores del bote, tickets y confites permanezcan estables sin parpadeos.
-  - Textos y Fórmulas: Serif matemático sutil para expresiones económicas ($\ln(x)$) y `DM Sans` para el cuerpo.
-- **Ergonomía Táctil Móvil**:
-  - Botones y controles con área de toque mínima de $48 \times 48\text{px}$.
-  - Zona de acción natural en el pulgar (parte inferior de la pantalla).
-  - Resumen visual permanente del tamaño del bote actual y del número de ticket que está en juego.
-  - Animaciones sutiles de transición con Framer Motion (reducción del bote, cambio de turno, ticket sellado como "Entregado").
+### Componente Reutilizable (`src/components/MathView.tsx`)
+1. `<MathView math={string} block={boolean} />`:
+   - Renderiza directamente una expresión matemática dada (ej. `\text{round}(\ln(x))`).
+   - Modo `inline` (por defecto) o `block` (centrado para ecuaciones destacadas).
+2. `<MathText text={string} />`:
+   - Parsea dinámicamente cadenas de texto que combinan texto regular con fórmulas entre `$formula$` y `$$formula$$`.
+   - Permite que los párrafos explicativos se lean con naturalidad intercalando variables como $x$, $\ln(x)$ y $u_i(x_i)$.
 
 ---
 
-## 3. Decisiones Técnicas y de Producto
+## 3. Integración en Pantallas y Vistas
 
-1. **Persistencia y Tiempo Real (Firebase Firestore)**:
-   - Uso de `onSnapshot` para suscripciones reactivas en clientes móviles.
-   - Si un jugador toma confites en su teléfono, todos los demás estudiantes ven el bote descontarse y la tabla actualizarse en $<200\text{ms}$.
-   - Reglas de seguridad estrictas (`firestore.rules`) siguiendo el estándar de mínimo privilegio y validación de tipos.
+1. **Modal de Reglas y Teoría (`GameTheoryGuideModal.tsx`)**:
+   - Sección de Utilidad Marginal:
+     $$\text{Utilidad}: u_i(x_i) = \text{round}(\ln(x_i))$$
+   - Ejemplos tabulados matemáticamente:
+     $\ln(1) = 0$, $\ln(3) \approx 1.1 \to 1$, $\ln(20) \approx 3.0 \to 3$, $\ln(100) \approx 4.6 \to 5$.
+   - Sección de Gobernanza (Elinor Ostrom):
+     $$\text{Dividendo Final} = \text{round}(\ln(\text{Bote}_{\text{restante}}))$$
 
-2. **Gestión de Turnos y Ausencias**:
-   - Turno secuencial indexado (`currentTurnTicket: number`).
-   - El jugador solo puede interactuar con el formulario de decisión si su ticket coincide exactamente con `currentTurnTicket` y el bote está abierto.
-   - El administrador dispone de un botón de emergencia "Avanzar Turno" (por si un compañero no está prestando atención o se fue del aula).
+2. **Modal de Decisión del Turno (`DecisionModal.tsx`)**:
+   - Previsualización dinámica de la ecuación en vivo según el valor seleccionado en el slider:
+     $$x = 25 \implies f(25) = \text{round}(\ln(25)) = 3\text{ confites}$$
+   - Impacto sobre el bote:
+     $$\text{Bote}_{\text{nuevo}} = \text{Bote}_{\text{actual}} - f(x)$$
 
-3. **Doble Fase de Reclamo Físico**:
-   - Cada jugador tiene dos estados de reclamo físico independientes:
-     1. `initialClaimed`: si ya fue a la caja de confites a recoger sus $\text{round}(\ln(x))$ confites de extracción.
-     2. `bonusClaimed`: si ya recogió su bono final $\text{round}(\ln(\text{remanente}))$ una vez terminado el juego.
-   - En el panel de administrador, el usuario puede buscar rápidamente por número de ticket o nombre y marcar con un solo toque el reclamo correspondiente.
+3. **Ticket de Participante (`TicketCard.tsx`)**:
+   - Reemplazar texto plano con fórmulas KaTeX: $x$ solicitado, $\text{round}(\ln(x))$ asignado.
+   - Fórmula de dividendo proyectado: $\text{round}(\ln(\text{Bote}))$.
 
-4. **Transparencia y Registro Público (Ledger)**:
-   - Tabla pública visible para todos los jugadores mostrando:
-     - Nombre del jugador.
-     - Número de ticket.
-     - Extracción deseada ($x$).
-     - Confites asignados ($\ln(x)$).
-     - Confites restantes en el bote tras la jugada.
-     - Hora del movimiento.
+4. **Pizarra Pública (`PublicLedger.tsx`)**:
+   - Encabezados de tabla: Columna "$x$ solicitado" y columna "$\text{round}(\ln(x))$ recibido".
 
----
-
-## 4. Arquitectura de Datos y Componentes
-
-### Diagrama del Sistema
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        FIREBASE FIRESTORE DB                           │
-│                                                                        │
-│  /botes/{boteCode}                                                     │
-│   ├── name, initialCandies, currentCandies, currentTurnTicket, status  │
-│   ├── createdAt, endedAt, adminId                                      │
-│   │                                                                    │
-│   ├── /players/{playerId}                                              │
-│   │    ├── ticketNumber, name, chosenX, receivedLnX                    │
-│   │    ├── initialClaimed, bonusClaimed, joinedAt, playedAt            │
-│   │                                                                    │
-│   └── /ledger/{actionId}                                               │
-│        └── ticketNumber, playerName, x, lnX, remainingAfter, timestamp │
-└──────────────────┬─────────────────────────────────┬───────────────────┘
-                   │ onSnapshot (Realtime sync)      │
-                   ▼                                 ▼
-┌──────────────────────────────────────┐  ┌──────────────────────────────┐
-│       DISPOSITIVO JUGADOR (Móvil)    │  │   ADMINISTRADOR (Disfraz)    │
-│                                      │  │                              │
-│ · Vista Entrada (Código + Nombre)    │  │ · Creador de Bote + QR Code  │
-│ · Ticket Digital Personalizado       │  │ · Tablero de Control en Vivo │
-│ · Formulario de Decisión (en turno)  │  │ · Selector de Turno Siguiente│
-│ · Pizarra Pública de Extracciones    │  │ · Marcador de Reclamos Físicos│
-│ · Calculadora Dinámica de Bono Final │  │ · Cierre y Reporte del Juego │
-└──────────────────────────────────────┘  └──────────────────────────────┘
-```
-
-### Estructura de Entidades (Schema Blueprint)
-
-1. **`botes/{boteId}`**:
-   - `id`: string (código corto de 6 caracteres, ej: `UCR-702` o `COMUN1`)
-   - `name`: string ("Curso Teoría de Juegos - Grupo 01")
-   - `initialCapacity`: number (ej. 100)
-   - `currentCandies`: number (remanente en tiempo real)
-   - `status`: `'waiting' | 'active' | 'ended'`
-   - `currentTurnTicket`: number (ticket activo decidiendo)
-   - `totalPlayers`: number
-   - `finalBonus`: number (calculado al finalizar: $\text{round}(\ln(\text{currentCandies}))$)
-   - `createdAt`: timestamp
-   - `endedAt`: timestamp | null
-
-2. **`botes/{boteId}/players/{playerId}`**:
-   - `id`: string (UID o ID generado)
-   - `boteId`: string
-   - `ticketNumber`: number (1, 2, 3...)
-   - `name`: string (nombre del compañero)
-   - `hasPlayed`: boolean
-   - `chosenX`: number | null (cuánto pidió)
-   - `receivedLnX`: number | null (cuánto le dio $\text{round}(\ln(x))$)
-   - `initialClaimed`: boolean (si ya retiró los primeros confites con el profe/estudiante)
-   - `initialClaimedAt`: timestamp | null
-   - `bonusClaimed`: boolean (si ya retiró el bono final)
-   - `bonusClaimedAt`: timestamp | null
-   - `joinedAt`: timestamp
-
-3. **`botes/{boteId}/ledger/{entryId}`**:
-   - `ticketNumber`: number
-   - `playerName`: string
-   - `chosenX`: number
-   - `receivedLnX`: number
-   - `remainingCandies`: number
-   - `timestamp`: timestamp
+5. **Pantalla de Entrada (`JoinBoteView.tsx`)**:
+   - Reglas breves con renderizado matemático estilizado en lugar de texto plano.
 
 ---
 
-## 5. Fases de Ejecución Tras Aprobación
+## 4. Fases de Ejecución
 
-1. **Configuración de Firebase**:
-   - Provisionar Firebase Firestore mediante las herramientas oficiales (`show_aistudio_ui` y `ProvisionFirebase`).
-   - Crear `firebase-blueprint.json` y desplegar reglas de seguridad seguras en `firestore.rules`.
-2. **Instalación de Dependencias**:
-   - Instalar `firebase`, `qrcode.react` (para el código QR del bote en pantalla) y `canvas-confetti` para celebración al reclamar o finalizar.
-3. **Módulo Central de Lógica Económica**:
-   - Implementar cálculo matemático exacto: $f(x) = \text{round}(\ln(x))$.
-   - Servicio reactivo de Firestore con transacciones atómicas para descontar confites de forma concurrente y segura.
-4. **Vistas e Interfaz**:
-   - Pantalla de Bienvenida y Selección de Rol (Estudiante con Código / Admin con PIN).
-   - Generador y Administrador de Botes con visualización de Código y QR imprimible/mostrable.
-   - Vista de Jugador con Ticket Digital animado, indicador de turno y slider/selector interactivo.
-   - Pizarra de Historial en Tiempo Real accesible para todos los asistentes.
-   - Panel de Despacho de Confites para el administrador con búsqueda rápida de ticket y doble verificación de reclamo.
-   - Pantalla de Fin de Juego con resumen económico (¿se agotó el recurso?, reparto de bonos, estadísticas finales).
-5. **Verificación y Compilación**:
-   - Pruebas de compilación TypeScript (`compile_applet`).
-   - Verificación del comportamiento responsivo en móviles.
+1. **Instalación de Dependencias**:
+   - Instalar `katex` y `@types/katex`.
+   - Importar los estilos CSS de KaTeX (`katex/dist/katex.min.css`) en `src/index.css`.
+2. **Creación del Componente de Soporte (`src/components/MathView.tsx`)**:
+   - Implementar `MathView` y `MathText` con sanitización y manejo seguro de errores.
+3. **Actualización de Vistas**:
+   - Migrar `GameTheoryGuideModal.tsx`, `DecisionModal.tsx`, `TicketCard.tsx`, `PublicLedger.tsx` y `JoinBoteView.tsx`.
+4. **Verificación**:
+   - Comprobar compilación TypeScript con `compile_applet` y `lint_applet`.
+   - Verificar renderizado síncrono en dispositivos móviles sin desbordamiento.
